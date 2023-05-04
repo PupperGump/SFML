@@ -22,6 +22,8 @@
 //
 ////////////////////////////////////////////////////////////
 
+// This version was changed by PupperGump: Added clear_pages() to prevent memory leaks
+
 ////////////////////////////////////////////////////////////
 // Headers
 ////////////////////////////////////////////////////////////
@@ -500,6 +502,17 @@ void Font::setSmooth(bool smooth)
 bool Font::isSmooth() const
 {
     return m_isSmooth;
+}
+
+
+void Font::clearPages(size_t max_items_bytes) const
+{
+    if (max_items_bytes <= m_pages.size() * sizeof(PageTable))
+        return;
+
+    // Reset members
+    m_pages.clear();
+    std::vector<std::uint8_t>().swap(m_pixelBuffer);
 }
 
 
