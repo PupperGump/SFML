@@ -46,6 +46,7 @@ namespace
 {
 	// Add an underline or strikethrough line to the vertex array
 	void addLine(sf::VertexArray& vertices,
+        float            startX,
 		float            lineLength,
 		float            lineTop,
 		const sf::Color& color,
@@ -56,11 +57,14 @@ namespace
 		float top = std::floor(lineTop + offset - (thickness / 2) + 0.5f);
 		float bottom = top + std::floor(thickness + 0.5f);
 
-		vertices.append(sf::Vertex(sf::Vector2f(-outlineThickness, top - outlineThickness), color, sf::Vector2f(1, 1)));
+        // This appears to be a hack for drawing 2 triangles to make a rectangle due to m_vertices being of type sf::Triangles
+        // Top left, top right, bottom left, bottom left, top right, bottom right
+
+		vertices.append(sf::Vertex(sf::Vector2f(startX - outlineThickness, top - outlineThickness), color, sf::Vector2f(1, 1)));
 		vertices.append(
 			sf::Vertex(sf::Vector2f(lineLength + outlineThickness, top - outlineThickness), color, sf::Vector2f(1, 1)));
-		vertices.append(sf::Vertex(sf::Vector2f(-outlineThickness, bottom + outlineThickness), color, sf::Vector2f(1, 1)));
-		vertices.append(sf::Vertex(sf::Vector2f(-outlineThickness, bottom + outlineThickness), color, sf::Vector2f(1, 1)));
+		vertices.append(sf::Vertex(sf::Vector2f(startX - outlineThickness, bottom + outlineThickness), color, sf::Vector2f(1, 1)));
+		vertices.append(sf::Vertex(sf::Vector2f(startX - outlineThickness, bottom + outlineThickness), color, sf::Vector2f(1, 1)));
 		vertices.append(
 			sf::Vertex(sf::Vector2f(lineLength + outlineThickness, top - outlineThickness), color, sf::Vector2f(1, 1)));
 		vertices.append(
@@ -474,6 +478,7 @@ namespace sf
 		std::uint32_t prevChar = 0;
 
 		size_t start = 0;
+        float line_start = 0.f;
 
 		for (std::size_t i = 0; i < m_string.getSize(); ++i)
 		{
@@ -546,6 +551,7 @@ namespace sf
                     x = center - line_width / 2.f;
                 else if (m_alignment == Align::RIGHT)
                     x = m_width - line_width;
+                line_start = x;
 
                 if (i != 0)
                 {
@@ -563,19 +569,19 @@ namespace sf
             // Condition to separate normal from aligned styles (aligned and line started) or (not aligned and newline)
             if (isUnderlined && (m_width > 0 && (i == start - 1) || (m_width == 0 && curChar == U'\n' && prevChar != U'\n')))
 			{
-				addLine(m_vertices, x, y, m_fillColor, underlineOffset, underlineThickness);
+				addLine(m_vertices, line_start, x, y, m_fillColor, underlineOffset, underlineThickness);
 
 				if (m_outlineThickness != 0)
-					addLine(m_outlineVertices, x, y, m_outlineColor, underlineOffset, underlineThickness, m_outlineThickness);
+					addLine(m_outlineVertices, line_start, x, y, m_outlineColor, underlineOffset, underlineThickness, m_outlineThickness);
 			}
 
 			// If we're using the strike through style and there's a new line, draw a line across all characters
-			if (isStrikeThrough && (curChar == U'\n' && prevChar != U'\n'))
+			if (isStrikeThrough && (m_width > 0 && (i == start - 1) || (m_width == 0 && curChar == U'\n' && prevChar != U'\n')))
 			{
-				addLine(m_vertices, x, y, m_fillColor, strikeThroughOffset, underlineThickness);
+				addLine(m_vertices, line_start, x, y, m_fillColor, strikeThroughOffset, underlineThickness);
 
 				if (m_outlineThickness != 0)
-					addLine(m_outlineVertices, x, y, m_outlineColor, strikeThroughOffset, underlineThickness, m_outlineThickness);
+					addLine(m_outlineVertices, line_start, x, y, m_outlineColor, strikeThroughOffset, underlineThickness, m_outlineThickness);
 			}
 
 			prevChar = curChar;
@@ -652,19 +658,19 @@ namespace sf
 		// If we're using the underlined style, add the last line
 		if (isUnderlined && (x > 0))
 		{
-			addLine(m_vertices, x, y, m_fillColor, underlineOffset, underlineThickness);
+			addLine(m_vertices, line_start, x, y, m_fillColor, underlineOffset, underlineThickness);
 
 			if (m_outlineThickness != 0)
-				addLine(m_outlineVertices, x, y, m_outlineColor, underlineOffset, underlineThickness, m_outlineThickness);
+				addLine(m_outlineVertices, line_start, x, y, m_outlineColor, underlineOffset, underlineThickness, m_outlineThickness);
 		}
 
 		// If we're using the strike through style, add the last line across all characters
 		if (isStrikeThrough && (x > 0))
 		{
-			addLine(m_vertices, x, y, m_fillColor, strikeThroughOffset, underlineThickness);
+			addLine(m_vertices, line_start, x, y, m_fillColor, strikeThroughOffset, underlineThickness);
 
 			if (m_outlineThickness != 0)
-				addLine(m_outlineVertices, x, y, m_outlineColor, strikeThroughOffset, underlineThickness, m_outlineThickness);
+				addLine(m_outlineVertices, line_start, x, y, m_outlineColor, strikeThroughOffset, underlineThickness, m_outlineThickness);
 		}
 
 		// Update the bounding rectangle
